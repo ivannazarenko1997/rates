@@ -23,9 +23,7 @@ public class RestAPICallServiceImpl implements RestAPICallService {
     private final ValidateService validateService;
     private final RestTemplate restTemplate;
     private final RetryTemplate retryTemplate;
-
     private final ExecutorService virtualThreadExecutor;
-
 
     @Value("${exchange.api-url:https://api.exchangerate.host}")
     private String apiUrl;
