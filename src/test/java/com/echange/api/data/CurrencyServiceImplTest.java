@@ -2,7 +2,6 @@ package com.echange.api.data;
 
 
 import com.echange.api.data.service.CacheService;
-import com.echange.api.data.service.CurrencyService;
 import com.echange.api.data.service.impl.CurrencyServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
