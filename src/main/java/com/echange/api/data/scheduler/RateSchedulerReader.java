@@ -19,7 +19,7 @@ public class RateSchedulerReader {
 
     @Scheduled(cron = "0 */1 * * * *")
     public void refreshDataFromUrl() {
-        log.info("Sheduler obtaining data currencies and rates from API" );
+        log.info("Starting sheduler for obtaining data currencies and rates from API" );
         cacheService.refreshDataFromUrl();
     }
 
