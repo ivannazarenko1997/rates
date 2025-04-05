@@ -1,0 +1,7 @@
+server:
+  port: 8080
+exchange:
+  api-url: "https://api.exchangerate.host"
+  additional-api-url: "/latest?base="
+  symbols:  "/symbols"
+
