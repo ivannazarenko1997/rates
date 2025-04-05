@@ -56,7 +56,6 @@ public class CacheServiceImpl implements CacheService {
 
     public void refreshDataFromUrl() {
         try {
-            log.info("Starting sheduler obtain data currencies and rates from API" );
             putAllCurrenciesToCache();
             getAllCurrencies().keySet().forEach(this::putCachedRates);
             log.info("Obtained  succesfully currencies and rates from API by sheduler" );
