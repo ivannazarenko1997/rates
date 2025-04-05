@@ -19,13 +19,13 @@ import java.util.concurrent.Future;
 
 @Service
 public class RestAPICallServiceImpl implements RestAPICallService {
-
+    private static final Logger log = LoggerFactory.getLogger(RestAPICallServiceImpl.class);
     private final ValidateService validateService;
     private final RestTemplate restTemplate;
     private final RetryTemplate retryTemplate;
 
     private final ExecutorService virtualThreadExecutor;
-    private static final Logger log = LoggerFactory.getLogger(RestAPICallServiceImpl.class);
+
 
     @Value("${exchange.api-url:https://api.exchangerate.host}")
     private String apiUrl;

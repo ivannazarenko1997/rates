@@ -1,7 +1,10 @@
 package com.echange.api.data.service.impl;
 
+import com.echange.api.data.exception.CustomValidationException;
 import com.echange.api.data.service.CacheService;
 import com.echange.api.data.service.ExchangeRateRetrieveService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -12,7 +15,7 @@ import java.util.concurrent.Future;
 
 @Service
 public class ExchangeRateRetrieveServiceImpl implements ExchangeRateRetrieveService {
-
+    private static final Logger log = LoggerFactory.getLogger(ExchangeRateRetrieveServiceImpl.class);
     private final CacheService cacheService;
     private final Executor virtualThreadExecutor;
 
@@ -29,7 +32,8 @@ public class ExchangeRateRetrieveServiceImpl implements ExchangeRateRetrieveServ
             });
             return future.get(); // blocks briefly, on a virtual thread
         } catch (Exception e) {
-            throw new RuntimeException("Failed to fetch exchange rate", e);
+            log.error("Failed to fetch exchange rate", e);
+            throw new CustomValidationException("Failed to fetch exchange rate", e);
         }
     }
 

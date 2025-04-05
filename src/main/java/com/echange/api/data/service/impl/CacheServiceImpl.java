@@ -1,8 +1,11 @@
 package com.echange.api.data.service.impl;
 
+import com.echange.api.data.exception.CustomValidationException;
 import com.echange.api.data.model.CachedRates;
 import com.echange.api.data.service.CacheService;
 import com.echange.api.data.service.RestAPICallService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -11,7 +14,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class CacheServiceImpl implements CacheService {
-
+    private static final Logger log = LoggerFactory.getLogger(CacheServiceImpl.class);
     private final RestAPICallService restAPICallService;
     private final Executor virtualThreadExecutor;
     private final Map<String, CachedRates> cacheRates = new ConcurrentHashMap<>();
@@ -20,10 +23,6 @@ public class CacheServiceImpl implements CacheService {
     public CacheServiceImpl(RestAPICallService restAPICallService, Executor virtualThreadExecutor) {
         this.restAPICallService = restAPICallService;
         this.virtualThreadExecutor = virtualThreadExecutor;
-    }
-
-    public Map<String, CachedRates> getCache() {
-        return cacheRates;
     }
 
     public void putCache(String key, CachedRates value) {
@@ -42,7 +41,8 @@ public class CacheServiceImpl implements CacheService {
             );
             return future.get();
         } catch (Exception e) {
-            throw new RuntimeException("Failed to get currencies from API", e);
+            log.error("Failed to get currencies from API", e);
+            throw new CustomValidationException("Failed to get currencies from API" );
         }
     }
 
@@ -56,25 +56,11 @@ public class CacheServiceImpl implements CacheService {
 
     public void refreshDataFromUrl() {
         putAllCurrenciesToCache();
-
         getAllCurrencies().keySet().forEach(this::putCachedRates);
     }
 
-    public Map<String, Double> putCachedRates(String from) {
-        try {
-            Future<Map<String, Double>> future = ((ExecutorService) virtualThreadExecutor).submit(() -> {
-                CachedRates cached = cacheRates.get(from.toUpperCase());
-                if (cached == null || cached.isExpired()) {
-                    Map<String, Double> rates = restAPICallService.getRates(from);
-                    cached = new CachedRates(rates);
-                    cacheRates.put(from.toUpperCase(), cached);
-                }
-                return cached.getRates();
-            });
-            return future.get();
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to fetch rates", e);
-        }
+    public void putCachedRates(String from) {
+        getRatesFromCache(from);
     }
 
     public Map<String, Double> getRatesFromCache(String base) {
@@ -84,12 +70,13 @@ public class CacheServiceImpl implements CacheService {
                 if (cached == null || cached.isExpired()) {
                     Map<String, Double> rates = restAPICallService.getRates(base);
                     cached = new CachedRates(rates);
-                    cacheRates.put(base.toUpperCase(), cached);
+                    putCache(base.toUpperCase(), cached);
                 }
                 return cached.getRates();
             });
             return future.get();
         } catch (Exception e) {
+            log.error("Failed to fetch rates from cache", e);
             throw new RuntimeException("Failed to fetch rates from cache", e);
         }
     }

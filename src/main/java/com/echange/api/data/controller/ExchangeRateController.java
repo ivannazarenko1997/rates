@@ -17,6 +17,7 @@ public class ExchangeRateController {
 
     @Autowired
     private  CurrencyService currencyService;
+    
     @GetMapping("/rate")
     public double getRate(@RequestParam String from, @RequestParam String to) {
         return service.getExchangeRate(from, to);
@@ -45,6 +46,5 @@ public class ExchangeRateController {
         return currencyService.getAllCurrencies();
 
     }
-
 
 }
