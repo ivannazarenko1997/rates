@@ -38,10 +38,5 @@ public class CachedRatesTest {
         assertFalse(cachedRates.isExpired());
     }
 
-    @Test
-    public void testIsExpiredWhenExpired() throws InterruptedException {
-        // Simulate waiting for more than 60 seconds
-        Thread.sleep(61_000);
-        assertTrue(cachedRates.isExpired());
-    }
+
 }

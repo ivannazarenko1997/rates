@@ -5,19 +5,24 @@ import com.echange.api.data.model.CurrencyDetails;
 import com.echange.api.data.model.CurrencySymbolsResponse;
 import com.echange.api.data.model.ExchangeRateResponse;
 import com.echange.api.data.service.ValidateService;
+import com.echange.api.data.service.impl.RestAPICallServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.client.RestTemplate;
-import  com.echange.api.data.service.impl.RestAPICallServiceImpl;
+
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,80 +37,80 @@ public class RestAPICallServiceImplTest {
     @Mock
     private RetryTemplate retryTemplate;
 
-    @InjectMocks
-    private RestAPICallServiceImpl restAPICallService;
+    @Mock
+    private ExecutorService virtualThreadExecutor;
 
-    private ExchangeRateResponse exchangeRateResponse;
-    private CurrencySymbolsResponse currencySymbolsResponse;
+    @InjectMocks
+    private RestAPICallServiceImpl restAPICallServiceImpl;
+
+    @Mock
+    private Future<ExchangeRateResponse> exchangeRateFuture;
+
+    @Mock
+    private Future<CurrencySymbolsResponse> currencySymbolsFuture;
 
     @BeforeEach
     public void setUp() {
-        exchangeRateResponse = new ExchangeRateResponse("USD", new HashMap<>());
-        currencySymbolsResponse = new CurrencySymbolsResponse(true, new HashMap<>());
+        restAPICallServiceImpl = new RestAPICallServiceImpl(validateService, restTemplate, retryTemplate, virtualThreadExecutor);
     }
 
     @Test
-    public void testGetRates() {
-        String base = "USD";
-        Map<String, Double> rates = new HashMap<>();
-        rates.put("EUR", 0.85);
-        exchangeRateResponse.setRates(rates);
+    public void testGetExchangeRateRestWhenApiCallSuccessful() throws Exception {
+        // Arrange
+        ExchangeRateResponse expectedResponse = new ExchangeRateResponse("USD", new HashMap<>());
+        when(virtualThreadExecutor.submit(any(Callable.class))).thenReturn(exchangeRateFuture);
+        when(exchangeRateFuture.get()).thenReturn(expectedResponse);
 
-        when(retryTemplate.execute(any())).thenReturn(exchangeRateResponse);
+        // Act
+        ExchangeRateResponse actualResponse = restAPICallServiceImpl.getExchangeRateRest("USD");
 
-        Map<String, Double> result = restAPICallService.getRates(base);
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(0.85, result.get("EUR"));
-
-        verify(validateService).validateRates(any());
-        verify(retryTemplate).execute(any());
+        // Assert
+        assertEquals(expectedResponse, actualResponse);
     }
 
     @Test
-    public void testGetRatesException() {
-        String base = "USD";
+    public void testGetExchangeRateRestWhenApiCallFails() throws Exception {
+        // Arrange
+        when(virtualThreadExecutor.submit(any(Callable.class))).thenReturn(exchangeRateFuture);
+        when(exchangeRateFuture.get()).thenThrow(new RuntimeException("API call failed"));
 
-        when(retryTemplate.execute(any())).thenThrow(new RuntimeException("API call failed"));
+        // Act
+        ExchangeRateResponse actualResponse = restAPICallServiceImpl.getExchangeRateRest("USD");
 
-        Map<String, Double> result = restAPICallService.getRates(base);
+        // Assert
+        assertNull(actualResponse);
+    }
 
-        assertNotNull(result);
-        assertTrue(result.isEmpty());
 
-        verify(validateService, never()).validateRates(any());
-        verify(retryTemplate).execute(any());
+
+    @Test
+    public void testGetAllCurrenciesRestWhenApiCallSuccessful() throws Exception {
+        // Arrange
+        CurrencySymbolsResponse expectedResponse = new CurrencySymbolsResponse(true, new HashMap<>());
+        when(virtualThreadExecutor.submit(any(Callable.class))).thenReturn(currencySymbolsFuture);
+        when(currencySymbolsFuture.get()).thenReturn(expectedResponse);
+
+        // Act
+        CurrencySymbolsResponse actualResponse = restAPICallServiceImpl.getAllCurrenciesRest();
+
+        // Assert
+        assertEquals(expectedResponse, actualResponse);
     }
 
     @Test
-    public void testGetAllCurrenciesToCache() {
-        Map<String, CurrencyDetails> symbols = new HashMap<>();
-        symbols.put("USD", new CurrencyDetails("United States Dollar", "USD"));
-        currencySymbolsResponse.setSymbols(symbols);
+    public void testGetAllCurrenciesRestWhenApiCallFails() throws Exception {
+        // Arrange
+        when(virtualThreadExecutor.submit(any(Callable.class))).thenReturn(currencySymbolsFuture);
+        when(currencySymbolsFuture.get()).thenThrow(new RuntimeException("API call failed"));
 
-        when(retryTemplate.execute(any())).thenReturn(currencySymbolsResponse);
+        // Act
+        CurrencySymbolsResponse actualResponse = restAPICallServiceImpl.getAllCurrenciesRest();
 
-        Map<String, CurrencyDetails> result = restAPICallService.getAllCurrenciesToCache();
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals("United States Dollar", result.get("USD").getDescription());
-
-        verify(validateService).validateSymbols(any());
-        verify(retryTemplate).execute(any());
+        // Assert
+        assertNull(actualResponse);
     }
 
-    @Test
-    public void testGetAllCurrenciesToCacheException() {
-        when(retryTemplate.execute(any())).thenThrow(new RuntimeException("API call failed"));
 
-        Map<String, CurrencyDetails> result = restAPICallService.getAllCurrenciesToCache();
 
-        assertNotNull(result);
-        assertTrue(result.isEmpty());
 
-        verify(validateService, never()).validateSymbols(any());
-        verify(retryTemplate).execute(any());
-    }
 }

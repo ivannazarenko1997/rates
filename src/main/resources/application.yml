@@ -1,5 +1,9 @@
 server:
   port: 8080
+spring:
+  threads:
+    virtual:
+      enabled: true
 exchange:
   api-url: "https://api.exchangerate.host"
   additional-api-url: "/latest?base="

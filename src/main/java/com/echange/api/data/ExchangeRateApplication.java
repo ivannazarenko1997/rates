@@ -10,6 +10,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 public class ExchangeRateApplication {
 	public static void main(String[] args) {
+		System.setProperty("spring.threads.virtual.enabled", "true");
 		SpringApplication.run(ExchangeRateApplication.class, args);
 	}
 }

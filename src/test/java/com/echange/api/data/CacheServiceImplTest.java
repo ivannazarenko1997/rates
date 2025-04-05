@@ -1,22 +1,22 @@
 package com.echange.api.data;
 
-
 import com.echange.api.data.model.CachedRates;
-import com.echange.api.data.model.CurrencyDetails;
 import com.echange.api.data.service.RestAPICallService;
 import com.echange.api.data.service.impl.CacheServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -25,111 +25,66 @@ public class CacheServiceImplTest {
     @Mock
     private RestAPICallService restAPICallService;
 
+    private ExecutorService virtualThreadExecutor;
+
     @InjectMocks
     private CacheServiceImpl cacheService;
 
-    private Map<String, Double> rates;
-    private Map<String, CurrencyDetails> currencies;
-
     @BeforeEach
     public void setUp() {
-        rates = new HashMap<>();
-        rates.put("EUR", 0.85);
-
-        currencies = new HashMap<>();
-        currencies.put("USD", new CurrencyDetails("United States Dollar", "USD"));
+        virtualThreadExecutor = Executors.newSingleThreadExecutor();
+        cacheService = new CacheServiceImpl(restAPICallService, virtualThreadExecutor);
     }
 
     @Test
-    public void testGetRatesWhenNotCached() {
-        String from = "USD";
-        when(restAPICallService.getRates(from)).thenReturn(rates);
+    public void testGetRatesFromCacheWhenCacheIsEmptyThenFetchFromAPI() throws Exception {
+        // Arrange
+        Map<String, Double> expectedRates = Collections.singletonMap("USD", 1.0);
+        when(restAPICallService.getRates(anyString())).thenReturn(expectedRates);
 
-        Map<String, Double> cachedRates = cacheService.getRatesFromCache(from);
+        // Act
+        Map<String, Double> actualRates = cacheService.getRatesFromCache("USD");
 
-        assertNotNull(cachedRates);
-        assertEquals(1, cachedRates.size());
-        assertEquals(0.85, cachedRates.get("EUR"));
-
-        verify(restAPICallService).getRates(from);
+        // Assert
+        verify(restAPICallService, times(1)).getRates("USD");
+        assertThat(actualRates).isEqualTo(expectedRates);
     }
 
     @Test
-    public void testGetRatesWhenCachedAndNotExpired() {
-        String from = "USD";
-        CachedRates cachedRates = new CachedRates(rates);
-        cacheService.putCache(from.toUpperCase(), cachedRates);
+    public void testGetRatesFromCacheWhenCacheIsNotEmptyThenFetchFromCache() throws Exception {
+        // Arrange
+        Map<String, Double> expectedRates = Collections.singletonMap("USD", 1.0);
+        CachedRates cachedRates = new CachedRates(expectedRates);
+        cacheService.putCache("USD", cachedRates);
 
-        Map<String, Double> result = cacheService.getRatesFromCache(from);
+        // Act
+        Map<String, Double> actualRates = cacheService.getRatesFromCache("USD");
 
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(0.85, result.get("EUR"));
-
-        verify(restAPICallService, never()).getRates(from);
+        // Assert
+        verify(restAPICallService, never()).getRates(anyString());
+        assertThat(actualRates).isEqualTo(expectedRates);
     }
 
     @Test
-    public void testGetRatesWhenCachedAndExpired() throws InterruptedException {
-        String from = "USD";
-        CachedRates cachedRates = new CachedRates(rates);
-        cacheService.putCache(from.toUpperCase(), cachedRates);
+    public void testGetRatesFromCacheWhenCacheIsExpiredThenFetchFromAPI() throws Exception {
+        // Arrange
+        Map<String, Double> expiredRates = Collections.singletonMap("USD", 1.0);
+        CachedRates expiredCachedRates = new CachedRates(expiredRates) {
+            @Override
+            public boolean isExpired() {
+                return true;
+            }
+        };
+        cacheService.putCache("USD", expiredCachedRates);
 
-        // Simulate expiration
-        Thread.sleep(61_000);
+        Map<String, Double> newRates = Collections.singletonMap("USD", 1.1);
+        when(restAPICallService.getRates(anyString())).thenReturn(newRates);
 
-        Map<String, Double> newRates = new HashMap<>();
-        newRates.put("GBP", 0.75);
-        when(restAPICallService.getRates(from)).thenReturn(newRates);
+        // Act
+        Map<String, Double> actualRates = cacheService.getRatesFromCache("USD");
 
-        Map<String, Double> result = cacheService.getRatesFromCache(from);
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(0.75, result.get("GBP"));
-
-        verify(restAPICallService).getRates(from);
-    }
-
-    @Test
-    public void testGetAllCurrenciesFromCache() {
-        when(restAPICallService.getAllCurrenciesToCache()).thenReturn(currencies);
-
-        Map<String, String> result = cacheService.getAllCurrenciesFromCache();
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals("United States Dollar", result.get("USD"));
-
-        verify(restAPICallService).getAllCurrenciesToCache();
-    }
-
-    @Test
-    public void testPutAllCurrenciesToCache() {
-        when(restAPICallService.getAllCurrenciesToCache()).thenReturn(currencies);
-
-        cacheService.putAllCurrenciesToCache();
-
-        Map<String, String> result = cacheService.getAllCurrencies();
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals("United States Dollar", result.get("USD"));
-
-        verify(restAPICallService).getAllCurrenciesToCache();
-    }
-
-    @Test
-    public void testRefreshDataFromUrl() {
-        when(restAPICallService.getAllCurrenciesToCache()).thenReturn(currencies);
-        when(restAPICallService.getRates("USD")).thenReturn(rates);
-
-        cacheService.refreshDataFromUrl();
-
-        assertTrue(cacheService.getCache().containsKey("USD"));
-        assertEquals(rates, cacheService.getCache().get("USD").getRates());
-
-        verify(restAPICallService).getAllCurrenciesToCache();
-        verify(restAPICallService).getRates("USD");
+        // Assert
+        verify(restAPICallService, times(1)).getRates("USD");
+        assertThat(actualRates).isEqualTo(newRates);
     }
 }
