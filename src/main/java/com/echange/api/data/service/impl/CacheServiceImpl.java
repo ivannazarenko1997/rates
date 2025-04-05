@@ -60,16 +60,17 @@ public class CacheServiceImpl implements CacheService {
         return currencyConvertedMap;
     }
 
+
     public void refreshDataFromUrl() {
         putCurrenciesToCache();
         getCurrenciesFromCache().entrySet().stream().forEach(e -> {
             String codeCurrency = e.getKey();
-            cache.put(codeCurrency, new CachedRates(getRates(codeCurrency)));
+            putCachedRates(codeCurrency);
         });
     }
 
     @CachePut(value = "rates", key = "#from.toUpperCase()", unless = "#result == null")
-    public Map<String, Double> getCachedRates(String from) {
+    public Map<String, Double> putCachedRates(String from) {
         CachedRates cached = cache.get(from.toUpperCase());
         if (cached == null || cached.isExpired()) {
             Map<String, Double> rates = getRates(from);
@@ -81,7 +82,13 @@ public class CacheServiceImpl implements CacheService {
 
     @Cacheable(value = "rates", key = "#base.toUpperCase()", unless = "#result == null")
     public Map<String, Double> getRatesFromCache(String base) {
-        return getCachedRates(base);
+        CachedRates cached = cache.get(base.toUpperCase());
+        if (cached == null || cached.isExpired()) {
+            Map<String, Double> rates = getRates(base);
+            cached = new CachedRates(rates);
+            cache.put(base.toUpperCase(), cached);
+        }
+        return cached.getRates();
     }
 
     @Cacheable(value = "currencies", unless = "#result == null")
