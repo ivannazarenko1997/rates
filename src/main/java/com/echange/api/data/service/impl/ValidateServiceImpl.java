@@ -6,6 +6,8 @@ import com.echange.api.data.model.ExchangeRateResponse;
 import com.echange.api.data.service.ValidateService;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class ValidateServiceImpl implements ValidateService {
     public void validateRates(ExchangeRateResponse response) throws CustomValidationException {
@@ -22,5 +24,12 @@ public class ValidateServiceImpl implements ValidateService {
         } else  if (response.getSymbols()==null || response.getSymbols().isEmpty()) {
             throw new CustomValidationException("symbols is empty");
         }
+    }
+
+    public boolean isStringEmpty(String str) {
+        return (str!=null && !str.isEmpty());
+    }
+    public boolean isListEmpty(List<String> list) {
+        return (list!=null && !list.isEmpty());
     }
 }
