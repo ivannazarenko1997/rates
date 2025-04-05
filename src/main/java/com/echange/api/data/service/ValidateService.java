@@ -5,6 +5,6 @@ import com.echange.api.data.model.ExchangeRateResponse;
 import org.springframework.http.ResponseEntity;
 
 public interface ValidateService {
-      void validateRates(ResponseEntity<ExchangeRateResponse> response) ;
-      void validateSymbols(ResponseEntity<CurrencySymbolsResponse> response);
+      void validateRates(ExchangeRateResponse response) ;
+      void validateSymbols(CurrencySymbolsResponse response);
 }
