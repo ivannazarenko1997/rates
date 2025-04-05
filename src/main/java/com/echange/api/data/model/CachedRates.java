@@ -1,6 +1,5 @@
 package com.echange.api.data.model;
 
-
 import java.util.Map;
 
 public   class CachedRates {
