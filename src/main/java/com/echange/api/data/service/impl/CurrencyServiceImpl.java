@@ -9,11 +9,12 @@ import java.util.Map;
 public class CurrencyServiceImpl implements CurrencyService {
     private final CacheService cacheService;
 
+
     public CurrencyServiceImpl(CacheService cacheService) {
         this.cacheService = cacheService;
     }
     @Override
     public Map<String, String> getAllCurrencies() {
-        return cacheService.getCurrenciesFromCache();
+        return cacheService.getAllCurrencies();
     }
 }

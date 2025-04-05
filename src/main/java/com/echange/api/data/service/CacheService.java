@@ -6,5 +6,5 @@ public interface CacheService {
       void refreshDataFromUrl();
       Map<String, String> getAllCurrencies() ;
       Map<String, Double> getRatesFromCache(String base) ;
-      Map<String, String> getCurrenciesFromCache() ;
+
 }

@@ -1,6 +1,8 @@
 package com.echange.api.data;
 
+
 import com.echange.api.data.service.CacheService;
+import com.echange.api.data.service.CurrencyService;
 import com.echange.api.data.service.impl.CurrencyServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,7 +34,7 @@ public class CurrencyServiceImplTest {
         currencies.put("USD", "United States Dollar");
         currencies.put("EUR", "Euro");
 
-        when(cacheService.getCurrenciesFromCache()).thenReturn(currencies);
+        when(cacheService.getAllCurrencies()).thenReturn(currencies);
     }
 
     @Test
@@ -42,6 +44,6 @@ public class CurrencyServiceImplTest {
 
         // Assert
         assertEquals(currencies, result);
-        verify(cacheService, times(1)).getCurrenciesFromCache();
+        verify(cacheService, times(1)).getAllCurrencies();
     }
 }
