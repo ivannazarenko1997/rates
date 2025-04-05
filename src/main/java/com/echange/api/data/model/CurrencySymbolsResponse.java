@@ -16,7 +16,6 @@ public class CurrencySymbolsResponse {
         return success;
     }
 
-
     public void setSuccess(boolean success) {
         this.success = success;
     }
@@ -29,8 +28,9 @@ public class CurrencySymbolsResponse {
         this.success = success;
         this.symbols = symbols;
     }
+
     public Map<String, CurrencyDetails> getSymbols() {
-        return symbols ;
+        return symbols;
     }
 }
 

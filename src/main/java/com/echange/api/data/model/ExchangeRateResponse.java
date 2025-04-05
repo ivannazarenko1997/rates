@@ -4,7 +4,6 @@ import java.util.Map;
 
 public class ExchangeRateResponse {
     public ExchangeRateResponse( ) {
-
     }
     public ExchangeRateResponse(String base, Map<String, Double> rates) {
         this.base = base;

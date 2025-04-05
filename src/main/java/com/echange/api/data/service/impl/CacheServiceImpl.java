@@ -6,6 +6,8 @@ import com.echange.api.data.model.ExchangeRateResponse;
 import com.echange.api.data.service.CacheService;
 import com.echange.api.data.service.ValidateService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -16,30 +18,29 @@ import java.util.stream.Collectors;
 
 @Service
 public class CacheServiceImpl implements CacheService {
-
-
     private final ValidateService validateService;
     private final RestTemplate restTemplate = new RestTemplate();
     private final Map<String, CachedRates> cache = new ConcurrentHashMap<>();
 
-    public Map<String, CachedRates> getCache() {
-        return cache;
-    }
 
     @Value("${exchange.api-url}")
-    private static String apiUrl ="https://api.exchangerate.host";
+    private static String apiUrl = "https://api.exchangerate.host";
 
     @Value("${exchange.additional-api-url}")
-    private static String additionalApiUrl  = "/latest?base=";
+    private static String additionalApiUrl = "/latest?base=";
 
     @Value("${exchange.symbols}")
-    private static String symbols="/symbols";
+    private static String symbols = "/symbols";
 
     private static final String ALL_API_URL = apiUrl + additionalApiUrl;
     private static final String ALL_API_SYMBOLS_URL = apiUrl + symbols;
 
     public CacheServiceImpl(ValidateService validateService) {
         this.validateService = validateService;
+    }
+
+    public Map<String, CachedRates> getCache() {
+        return cache;
     }
 
     private Map<String, Double> getRates(String base) {
@@ -60,12 +61,14 @@ public class CacheServiceImpl implements CacheService {
     }
 
     public void refreshDataFromUrl() {
-        getAllCurrencies().entrySet().stream().forEach(e -> {
+        putCurrenciesToCache();
+        getCurrenciesFromCache().entrySet().stream().forEach(e -> {
             String codeCurrency = e.getKey();
             cache.put(codeCurrency, new CachedRates(getRates(codeCurrency)));
         });
     }
 
+    @CachePut(value = "rates", key = "#from.toUpperCase()", unless = "#result == null")
     public Map<String, Double> getCachedRates(String from) {
         CachedRates cached = cache.get(from.toUpperCase());
         if (cached == null || cached.isExpired()) {
@@ -74,9 +77,21 @@ public class CacheServiceImpl implements CacheService {
             cache.put(from.toUpperCase(), cached);
         }
         return cached.getRates();
-
     }
 
+    @Cacheable(value = "rates", key = "#base.toUpperCase()", unless = "#result == null")
+    public Map<String, Double> getRatesFromCache(String base) {
+        return getCachedRates(base);
+    }
 
+    @Cacheable(value = "currencies", unless = "#result == null")
+    public Map<String, String> getCurrenciesFromCache() {
+        return getAllCurrencies();
+    }
+
+    @CachePut(value = "currencies", unless = "#result == null")
+    public Map<String, String> putCurrenciesToCache() {
+        return getAllCurrencies();
+    }
 
 }
