@@ -37,9 +37,12 @@ public class CacheServiceImpl implements CacheService {
     public CacheServiceImpl(ValidateService validateService) {
         this.validateService = validateService;
     }
-
     public Map<String, CachedRates> getCache() {
         return cache;
+    }
+
+    public void putCache(String key, CachedRates value) {
+          cache.put(key,value);
     }
 
     public Map<String, Double> getRates(String base) {
