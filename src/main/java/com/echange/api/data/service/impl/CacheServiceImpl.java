@@ -57,7 +57,7 @@ public class CacheServiceImpl implements CacheService {
 
     }
     private boolean validateResult(Map<String, String> map) {
-        return (map != null || !map.isEmpty()) ;
+        return (map != null && !map.isEmpty()) ;
     }
 
     public Map<String, String> getAllCurrencies() {
