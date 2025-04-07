@@ -56,6 +56,7 @@ public class CacheServiceImpl implements CacheService {
             cacheCurrency.putAll(map);
 
     }
+    
     private boolean validateResult(Map<String, String> map) {
         return (map != null && !map.isEmpty()) ;
     }
@@ -84,8 +85,10 @@ public class CacheServiceImpl implements CacheService {
                 CachedRates cached = cacheRates.get(base.toUpperCase());
                 if (cached == null || cached.isExpired()) {
                     Map<String, Double> rates = restAPICallService.getRates(base);
-                    if (rates==null || rates.isEmpty()) {
+
+                    if (!validateRates(rates)) {
                         log.error("Data from API for rates empty");
+                        return new HashMap<>();
                     }
                     cached = new CachedRates(rates);
                     putCache(base.toUpperCase(), cached);
@@ -97,5 +100,9 @@ public class CacheServiceImpl implements CacheService {
             log.error("Failed to fetch rates from cache", e);
              return new HashMap<>();
         }
+    }
+
+    private boolean validateRates(Map<String, Double> rates) {
+        return (rates !=null && !rates.isEmpty());
     }
 }

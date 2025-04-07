@@ -2,7 +2,7 @@ package com.echange.api.data.model;
 
 import java.util.Map;
 
-public   class CachedRates {
+public class CachedRates {
     private final Map<String, Double> rates;
     private final long timestamp;
 
