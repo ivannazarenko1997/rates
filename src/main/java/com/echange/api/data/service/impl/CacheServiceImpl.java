@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
@@ -47,7 +48,16 @@ public class CacheServiceImpl implements CacheService {
     }
 
     public void putAllCurrenciesToCache() {
-        cacheCurrency.putAll(getAllCurrenciesFromCache());
+           Map<String, String> map = getAllCurrenciesFromCache();
+            if (!validateResult(map)) {
+                log.error("Failed to get currencies and rates  from API by sheduler. Map empty");
+                throw  new CustomValidationException("Failed to get currencies and rates  from API by sheduler. Map empty");
+            }
+            cacheCurrency.putAll(map);
+
+    }
+    private boolean validateResult(Map<String, String> map) {
+        return (map != null || !map.isEmpty()) ;
     }
 
     public Map<String, String> getAllCurrencies() {
@@ -74,6 +84,9 @@ public class CacheServiceImpl implements CacheService {
                 CachedRates cached = cacheRates.get(base.toUpperCase());
                 if (cached == null || cached.isExpired()) {
                     Map<String, Double> rates = restAPICallService.getRates(base);
+                    if (rates==null || rates.isEmpty()) {
+                        log.error("Data from API for rates empty");
+                    }
                     cached = new CachedRates(rates);
                     putCache(base.toUpperCase(), cached);
                 }
@@ -82,7 +95,7 @@ public class CacheServiceImpl implements CacheService {
             return future.get();
         } catch (Exception e) {
             log.error("Failed to fetch rates from cache", e);
-            throw new RuntimeException("Failed to fetch rates from cache", e);
+             return new HashMap<>();
         }
     }
 }
