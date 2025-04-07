@@ -87,7 +87,7 @@ public class CacheServiceImpl implements CacheService {
                     Map<String, Double> rates = restAPICallService.getRates(base);
 
                     if (!validateRates(rates)) {
-                        log.error("Data from API for rates empty");
+                        log.error("Data from API for rates empty: {}",base);
                         return new HashMap<>();
                     }
                     cached = new CachedRates(rates);
